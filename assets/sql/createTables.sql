@@ -11,9 +11,9 @@ DROP TABLE IF EXISTS dead;
 CREATE TABLE users (
     id SERIAL,
     username VARCHAR(15),
-    created TIMESTAMP,
-    karma INTEGER,
-    about TEXT,
+    --created TIMESTAMP,
+    --karma INTEGER,
+    --about TEXT,
   	PRIMARY KEY (id)
 );
 
@@ -89,4 +89,8 @@ CREATE TABLE deleted (
 CREATE TABLE dead (
     item INTEGER,
   	PRIMARY KEY (item)
+);
+
+CREATE TABLE scrape(
+    last_id INTEGER
 );
