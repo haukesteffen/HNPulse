@@ -86,3 +86,6 @@ CREATE TABLE scrape (
 CREATE TABLE skipped (
     item INTEGER
 );
+
+INSERT INTO scrape (last_id)
+VALUES (1);
