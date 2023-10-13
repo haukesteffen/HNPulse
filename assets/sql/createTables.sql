@@ -91,6 +91,6 @@ CREATE TABLE dead (
   	PRIMARY KEY (item)
 );
 
-CREATE TABLE scrape(
+CREATE TABLE scrape (
     last_id INTEGER
 );
