@@ -13,7 +13,7 @@ DROP TABLE IF EXISTS scrape CASCADE;
 CREATE TABLE stories (
     id INTEGER,
     title TEXT,
-    by INTEGER,
+    by VARCHAR(15),
     descendants INTEGER,
     score INTEGER,
     time TIMESTAMP,
@@ -25,7 +25,7 @@ CREATE TABLE jobs (
     id INTEGER,
     title TEXT,
     text TEXT,
-    by INTEGER,
+    by VARCHAR(15),
     score INTEGER,
     time TIMESTAMP,
     url TEXT,
@@ -35,7 +35,7 @@ CREATE TABLE jobs (
 CREATE TABLE comments (
     id INTEGER,
     text TEXT,
-    by INTEGER,
+    by VARCHAR(15),
     time TIMESTAMP,
   	PRIMARY KEY (id)
 );
@@ -44,7 +44,7 @@ CREATE TABLE polls (
     id INTEGER,
     title TEXT,
     text TEXT,
-    by INTEGER,
+    by VARCHAR(15),
     descendants INTEGER,
     score INTEGER,
     time TIMESTAMP,
@@ -54,7 +54,7 @@ CREATE TABLE polls (
 CREATE TABLE pollopts (
     id INTEGER,
     text TEXT,
-    by INTEGER,
+    by VARCHAR(15),
     poll INTEGER,
     score INTEGER,
     time TIMESTAMP,
