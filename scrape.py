@@ -9,7 +9,7 @@ class Scraper:
     def __init__(self):
         self._empty_dicts()
         self.client = requests.Session()
-        self.engine = create_engine(f'postgresql://{os.environ["DBUSER"]}:{os.environ["DBPW"]}@localhost:5432/hn')
+        self.engine = create_engine(f'postgresql://{os.environ["DBUSER"]}:{os.environ["DBPW"]}@{os.environ["DBHOST"]}:5432/hn')
         self.max_id = self._get_max()
         self.last_id = self._get_last()
 
