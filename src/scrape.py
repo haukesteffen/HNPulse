@@ -2,7 +2,7 @@ import os
 import requests
 import numpy as np
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import create_engine
 
 class Scraper:
@@ -115,7 +115,7 @@ class Scraper:
         
         # get scrape time
         self.scrape['id'].append(input_id)
-        self.scrape['scrape_time'].append(datetime.now())
+        self.scrape['scrape_time'].append(datetime.now(timezone.utc))
 
         # check if deleted
         try:
