@@ -80,12 +80,14 @@ CREATE TABLE dead (
 );
 
 CREATE TABLE scrape (
-    last_id INTEGER
+    id INTEGER,
+    scrape_time TIMESTAMP,
+    PRIMARY KEY (id)
 );
 
 CREATE TABLE skipped (
     item INTEGER
 );
 
-INSERT INTO scrape (last_id)
-VALUES (1);
+INSERT INTO scrape(id, scrape_time)
+VALUES (1409000, CURRENT_TIMESTAMP);
