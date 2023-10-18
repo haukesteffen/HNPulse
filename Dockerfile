@@ -14,5 +14,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Run your application
-CMD ["python", "scrape.py"]
-
+CMD ["python", "src/scrape.py"]
