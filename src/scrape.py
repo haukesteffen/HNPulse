@@ -9,7 +9,7 @@ class Scraper:
     def __init__(self):
         self._empty_dicts()
         self.client = requests.Session()
-        self.engine = create_engine(f'postgresql://{os.environ["DBUSER"]}:{os.environ["DBPW"]}@{os.environ["DBHOST"]}:5432/hn')
+        self.engine = create_engine(f'postgresql://{os.environ["DBUSER"]}:{os.environ["DBPW"]}@localhost:5432/hn')
         self.max_id = self._get_max()
         self.last_id = self._get_last()
 
@@ -76,7 +76,8 @@ class Scraper:
             'item':[]
         }
         self.scrape = {
-            'last_id':[]
+            'id':[],
+            'scrape_time':[]
         }
         self.skipped = []
 
@@ -87,8 +88,10 @@ class Scraper:
 
     def _get_last(self):
         last_query = """
-        SELECT last_id
+        SELECT id
         FROM scrape
+        ORDER BY scrape_time DESC
+        LIMIT 1
         """
     
         with self.engine.begin() as con:
@@ -100,7 +103,6 @@ class Scraper:
         return int(response.text)
 
     def _to_dict(self, input_id):
-        self.scrape['last_id'] = [input_id]
         response = self._get(input_id)
 
         # sanity check
@@ -110,6 +112,10 @@ class Scraper:
         except KeyError:
             self.skipped.append(id)
             return
+        
+        # get scrape time
+        self.scrape['id'].append(input_id)
+        self.scrape['scrape_time'].append(datetime.now())
 
         # check if deleted
         try:
@@ -228,7 +234,7 @@ class Scraper:
 
     def _insert_sql(self):
         with self.engine.begin() as con:
-            self.scrape_df.to_sql(name='scrape', con=con, if_exists='replace', index=False)
+            self.scrape_df.to_sql(name='scrape', con=con, if_exists='append', index=False)
             self.skipped_df.to_sql(name='skipped', con=con, if_exists='append', index=False)
             self.deleted_df.to_sql(name='deleted', con=con, if_exists='append', index=False)
             self.dead_df.to_sql(name='dead', con=con, if_exists='append', index=False)
