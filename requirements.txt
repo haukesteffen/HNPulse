@@ -5,3 +5,4 @@ python-dateutil==2.8.2
 requests==2.31.0
 sqlalchemy==2.0.21
 openai==0.28.1
+Django==4.2.6
