@@ -27,7 +27,8 @@ SECRET_KEY = os.environ['DJANGO_KEY']
 DEBUG = True
 
 ALLOWED_HOSTS = ["hetz01.wfwfwf.wf",
-                 "95.217.218.201"
+                 "95.217.218.201",
+                 "127.0.0.1"
 ]
 
 
@@ -57,7 +58,7 @@ ROOT_URLCONF = 'django_project.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
