@@ -1,1 +1,6 @@
 Django==4.2.6
+numpy==1.26.0
+pandas==2.0.3
+psycopg2==2.9.3
+sqlalchemy==2.0.21
+openai==0.28.1
