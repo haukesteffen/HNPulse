@@ -37,6 +37,7 @@ CREATE TABLE comments (
     text TEXT,
     by VARCHAR(15),
     time TIMESTAMP,
+    parent INTEGER,
   	PRIMARY KEY (id)
 );
 
@@ -60,13 +61,6 @@ CREATE TABLE pollopts (
     time TIMESTAMP,
     CONSTRAINT fk_poll FOREIGN KEY(poll) REFERENCES polls(id),
   	PRIMARY KEY (id)
-);
-
-CREATE TABLE parents (
-    item INTEGER,
-    parent INTEGER,
-    type varchar(7),
-  	PRIMARY KEY (item)
 );
 
 CREATE TABLE deleted (
