@@ -28,8 +28,10 @@ def _get_prompt(id):
     '''
     {story_df.to_json()}
     '''
-    Following are the comments to the aforementioned Hacker News Post (delimited in three single quotes):
+    Following are the json-formatted comments to the aforementioned Hacker News Post (delimited in three single quotes):
+    '''
     {comments_df.to_json()}
+    '''
     """
 
     return prompt
