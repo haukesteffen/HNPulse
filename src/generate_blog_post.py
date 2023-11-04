@@ -60,6 +60,28 @@ FROM
 
 # Execute the SQL query to retrieve the comments hierarchy
 with engine.begin() as con:
-    comment_df = pd.read_sql_query(sql_query, con, coerce_float=False)
+    comment_df = pd.read_sql_query(sql_query, con, coerce_float=False).astype({'parent':'Int64'})
 
-print(comment_df)
+print(f'\n\nNested Comments DataFrame:\n{comment_df}')
+
+# Function to convert DataFrame to nested JSON
+def comments_to_json(df, parent_id=None):
+    if parent_id is None:
+        comments = df[df['parent'].isna()]
+    else:
+        comments = df[df['parent'] == parent_id]
+    result = []
+    for _, comment in comments.iterrows():
+        children = comments_to_json(df, comment['id'])
+        comment_dict = comment.to_dict()
+        if children:
+            comment_dict['children'] = children
+        result.append(comment_dict)
+    return result
+
+# Convert DataFrame to JSON
+comment_tree_json = comments_to_json(comment_df)
+
+# Print the resulting JSON
+import json
+print(f'\n\nNested Comments JSON:\n{json.dumps(comment_tree_json, indent=4)}')
