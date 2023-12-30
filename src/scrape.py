@@ -1,26 +1,61 @@
+import asyncio
+import aiohttp
 import os
+import html
 import requests
 import numpy as np
 import pandas as pd
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlalchemy import create_engine
+from time import perf_counter
+
 
 class Scraper:
-    def __init__(self):
+    def __init__(self, batch_size=1000, verbose=False):
+        self.verbose = verbose
+        self.batch_size = batch_size
         self._empty_dicts()
         self.client = requests.Session()
         self.engine = create_engine(f'postgresql://{os.environ["DBUSER"]}:{os.environ["DBPW"]}@localhost:5432/hn')
         self.max_id = self._get_max()
         self.last_id = self._get_last()
+        if self.verbose:
+            print(f'Initialized scraper. Last ID: {self.last_id}, Max ID: {self.max_id}, Batch Size: {self.batch_size}')
 
-    def begin_scraping(self):
-        self._empty_dicts()
-        for idx in range(self._get_last()+1, self._get_max()+1):
-            self._to_dict(idx)
-            if idx % 1000 == 0:
-                self._convert_dicts()
-                self._insert_sql()
-                self._empty_dicts()
+    async def begin_scraping(self):
+        while self.last_id < self.max_id:
+            start = perf_counter()
+            self.last_id = self._get_last()
+            self.max_id = self._get_max()
+            self._empty_dicts()
+            self.ids = range(self.last_id+1, min(self.last_id+1+self.batch_size, self.max_id))
+            self.jsons = await self._scrape_batch(self.ids)
+            for json in self.jsons:
+                self._to_dict(json)
+            self._convert_dicts()
+            self._insert_sql()
+            stop = perf_counter()
+            if self.verbose:
+                print(f'Processing of batch took {(stop-start):.2f} seconds')
+
+    async def _scrape_batch(self, ids):
+        async with aiohttp.ClientSession() as session:
+            jsons = await self._fetch_batch(session, ids)
+            return jsons
+
+    async def _fetch_batch(self, s, ids):
+        tasks = []
+        for id in ids:
+            task = asyncio.create_task(self._fetch(s, id))
+            tasks.append(task)
+        res = await asyncio.gather(*tasks)
+        return res
+
+    async def _fetch(self, s, id):
+        async with s.get(f'https://hacker-news.firebaseio.com/v0/item/{id}.json') as r:
+            if r.status != 200:
+                r.raise_for_status()
+            return await r.json()
 
     def _empty_dicts(self):
         self.stories = {
@@ -45,8 +80,7 @@ class Scraper:
             'id':[],
             'text':[],
             'by':[],
-            'time':[],
-            'parent':[]
+            'time':[]
         }
         self.polls = {
             'id':[],
@@ -64,6 +98,11 @@ class Scraper:
             'poll':[],
             'score':[],
             'time':[],
+        }
+        self.parents = {
+            'item':[],
+            'parent':[],
+            'type':[],
         }
         self.deleted = {
             'item':[]
@@ -98,77 +137,79 @@ class Scraper:
         response = self.client.get(url)
         return int(response.text)
 
-    def _to_dict(self, input_id):
-        response = self._get(input_id)
-
+    def _to_dict(self, json):
         # sanity check
         try:
-            id = response['id']
-            type = response['type']
+            id = json['id']
+            type = json['type']
         except KeyError:
             self.skipped.append(id)
             return
         
         # get scrape time
-        self.scrape['id'].append(input_id)
-        self.scrape['scrape_time'].append(datetime.now(timezone.utc))
+        self.scrape['id'].append(id)
+        self.scrape['scrape_time'].append(datetime.now())
 
         # check if deleted
         try:
-            if response['deleted']:
-                self.deleted['item'].append(response['id'])
+            if json['deleted']:
+                self.deleted['item'].append(json['id'])
         except KeyError:
             pass
 
         # check if dead
         try: 
-            if response['dead']:
-                self.dead['item'].append(response['id'])
+            if json['dead']:
+                self.dead['item'].append(json['id'])
         except KeyError:
             pass
 
         try:
-            title = response['title']
+            title = json['title']
+            title = html.unescape(title)
+            title = title.replace('\\x00','')
         except KeyError:
             title = np.nan
 
         try:
-            text = response['text']
+            text = json['text']
+            text = html.unescape(text)
+            text = text.replace('\x00','')
         except KeyError:
             text = np.nan
 
         try:
-            by = response['by']
+            by = json['by']
         except KeyError:
             by = np.nan
         
         try:
-            score = response['score']
+            score = json['score']
         except KeyError:
             score = np.nan
             
         try:
-            time = datetime.fromtimestamp(int(response['time']))
+            time = datetime.fromtimestamp(int(json['time']))
         except KeyError:
             time = np.nan
 
         try:
-            url = response['url']
+            url = json['url']
         except KeyError:
             url = np.nan
 
         try:
-            descendants = response['descendants']
+            descendants = json['descendants']
         except KeyError:
             descendants = np.nan
 
         try:
-            poll = response['poll']
+            poll = json['poll']
         except KeyError:
             poll = np.nan
 
         try:
-            parent = response['parent']
+            parent = json['parent']
         except KeyError:
             parent = np.nan
 
@@ -191,11 +232,13 @@ class Scraper:
             self.jobs['url'].append(url)
 
         elif type == 'comment':
+            self.parents['item'].append(id)
+            self.parents['parent'].append(parent)
+            self.parents['type'].append('comment')
             self.comments['id'].append(id)
             self.comments['text'].append(text)
             self.comments['by'].append(by)
             self.comments['time'].append(time)
-            self.comments['parent'].append(parent)
 
         elif type == 'poll':
             self.polls['id'].append(id)
@@ -221,6 +264,7 @@ class Scraper:
         self.dead_df = pd.DataFrame(self.dead)
         self.stories_df = pd.DataFrame(self.stories)
         self.jobs_df = pd.DataFrame(self.jobs)
+        self.parents_df = pd.DataFrame(self.parents)
         self.comments_df = pd.DataFrame(self.comments)
         self.polls_df = pd.DataFrame(self.polls)
         self.pollopts_df = pd.DataFrame(self.pollopts)
@@ -233,14 +277,15 @@ class Scraper:
             self.dead_df.to_sql(name='dead', con=con, if_exists='append', index=False)
             self.stories_df.to_sql(name='stories', con=con, if_exists='append', index=False)
             self.jobs_df.to_sql(name='jobs', con=con, if_exists='append', index=False)
+            self.parents_df.to_sql(name='parents', con=con, if_exists='append', index=False)
             self.comments_df.to_sql(name='comments', con=con, if_exists='append', index=False)
             self.polls_df.to_sql(name='polls', con=con, if_exists='append', index=False)
             self.pollopts_df.to_sql(name='pollopts', con=con, if_exists='append', index=False)
 
 
-def main():
-    scraper = Scraper()
-    scraper.begin_scraping()
+async def main():
+    scraper = Scraper(batch_size=1000, verbose=True)
+    await scraper.begin_scraping()
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
