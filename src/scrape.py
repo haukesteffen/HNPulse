@@ -80,7 +80,8 @@ class Scraper:
             'id':[],
             'text':[],
             'by':[],
-            'time':[]
+            'time':[],
+            'parent':[]
         }
         self.polls = {
             'id':[],
@@ -98,11 +99,6 @@ class Scraper:
             'poll':[],
             'score':[],
             'time':[],
-        }
-        self.parents = {
-            'item':[],
-            'parent':[],
-            'type':[],
         }
         self.deleted = {
             'item':[]
@@ -232,13 +228,11 @@ class Scraper:
             self.jobs['url'].append(url)
 
         elif type == 'comment':
-            self.parents['item'].append(id)
-            self.parents['parent'].append(parent)
-            self.parents['type'].append('comment')
             self.comments['id'].append(id)
             self.comments['text'].append(text)
             self.comments['by'].append(by)
             self.comments['time'].append(time)
+            self.comments['parent'].append(parent)
 
         elif type == 'poll':
             self.polls['id'].append(id)
@@ -264,7 +258,6 @@ class Scraper:
         self.dead_df = pd.DataFrame(self.dead)
         self.stories_df = pd.DataFrame(self.stories)
         self.jobs_df = pd.DataFrame(self.jobs)
-        self.parents_df = pd.DataFrame(self.parents)
         self.comments_df = pd.DataFrame(self.comments)
         self.polls_df = pd.DataFrame(self.polls)
         self.pollopts_df = pd.DataFrame(self.pollopts)
@@ -277,14 +270,13 @@ class Scraper:
             self.dead_df.to_sql(name='dead', con=con, if_exists='append', index=False)
             self.stories_df.to_sql(name='stories', con=con, if_exists='append', index=False)
             self.jobs_df.to_sql(name='jobs', con=con, if_exists='append', index=False)
-            self.parents_df.to_sql(name='parents', con=con, if_exists='append', index=False)
             self.comments_df.to_sql(name='comments', con=con, if_exists='append', index=False)
             self.polls_df.to_sql(name='polls', con=con, if_exists='append', index=False)
             self.pollopts_df.to_sql(name='pollopts', con=con, if_exists='append', index=False)
 
 
 async def main():
-    scraper = Scraper(batch_size=1000, verbose=True)
+    scraper = Scraper(batch_size=10000, verbose=True)
     await scraper.begin_scraping()
 
 if __name__ == '__main__':
