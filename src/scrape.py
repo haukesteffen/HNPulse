@@ -25,15 +25,15 @@ class Scraper:
     async def begin_scraping(self):
         while self.last_id < self.max_id:
             start = perf_counter()
-            self.last_id = self._get_last()
-            self.max_id = self._get_max()
             self._empty_dicts()
-            self.ids = range(self.last_id+1, min(self.last_id+1+self.batch_size, self.max_id))
+            self.ids = range(self.last_id+1, min(self.last_id+1+self.batch_size, self.max_id+1))
             self.jsons = await self._scrape_batch(self.ids)
             for json in self.jsons:
                 self._to_dict(json)
             self._convert_dicts()
             self._insert_sql()
+            self.last_id = self._get_last()
+            self.max_id = self._get_max()
             stop = perf_counter()
             if self.verbose:
                 print(f'Processing of batch took {(stop-start):.2f} seconds')
